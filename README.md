@@ -179,6 +179,3 @@ Host                    Server                    Peer
 
 ---
 
-## License
-
-MIT
