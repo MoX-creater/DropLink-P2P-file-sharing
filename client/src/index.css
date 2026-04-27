@@ -1,0 +1,667 @@
+/* ═══════════════════════════════════════════════════════════════
+   DropLink — P2P File Sharing · Design System
+   Premium dark glassmorphism with vibrant accent gradients
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── CSS Variables ────────────────────────────────────────────── */
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-card-hover: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.15);
+
+  --text-primary: #f0f0f5;
+  --text-secondary: #8a8a9a;
+  --text-muted: #55556a;
+
+  --accent-1: #6c5ce7;
+  --accent-2: #a855f7;
+  --accent-3: #06b6d4;
+  --gradient-primary: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  --gradient-secondary: linear-gradient(135deg, var(--accent-2), var(--accent-3));
+  --gradient-bg: radial-gradient(ellipse at 20% 50%, rgba(108, 92, 231, 0.08) 0%, transparent 50%),
+                 radial-gradient(ellipse at 80% 20%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
+                 radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
+
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-glow: 0 0 60px rgba(108, 92, 231, 0.15);
+  --shadow-card: 0 4px 30px rgba(0, 0, 0, 0.3);
+
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ── Reset & Base ─────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--gradient-bg);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+/* ── App Layout ───────────────────────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  align-items: center;
+  padding: 2rem 1.5rem;
+}
+
+/* ── Header / Branding ────────────────────────────────────────── */
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  animation: fadeInDown 0.6s var(--transition-slow);
+}
+
+.header__logo {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.header__tagline {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* ── Glass Card ───────────────────────────────────────────────── */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.glass-card:hover {
+  border-color: var(--glass-border-hover);
+}
+
+/* ── Main Content Area ────────────────────────────────────────── */
+.main-content {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeInUp 0.7s var(--transition-slow);
+}
+
+/* ── Room Panel ───────────────────────────────────────────────── */
+.room-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.room-panel__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.room-panel__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.room-panel__input-group {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.room-panel__input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.room-panel__input::placeholder {
+  color: var(--text-muted);
+}
+
+.room-panel__input:focus {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+}
+
+/* Room ID Display */
+.room-id-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.2rem;
+  background: rgba(108, 92, 231, 0.08);
+  border: 1px solid rgba(108, 92, 231, 0.2);
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.3s ease;
+}
+
+.room-id-display__label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.room-id-display__id {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-2);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.1em;
+}
+
+.room-id-display__copy {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  font-size: 0.85rem;
+}
+
+.room-id-display__copy:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0);
+  transition: background var(--transition-fast);
+}
+
+.btn:hover::after {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn--primary {
+  background: var(--gradient-primary);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+}
+
+.btn--primary:hover {
+  box-shadow: 0 6px 25px rgba(108, 92, 231, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn--primary:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.btn--secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+}
+
+.btn--secondary:hover {
+  border-color: var(--glass-border-hover);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn--danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.btn--danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn:disabled::after {
+  display: none;
+}
+
+/* ── Connection Status ────────────────────────────────────────── */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+
+.connection-status--connecting {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+}
+
+.connection-status--connected {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: var(--success);
+}
+
+.connection-status--disconnected {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--error);
+}
+
+.connection-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.connection-status--connecting .connection-status__dot {
+  background: var(--warning);
+  animation: pulse 1.2s infinite;
+}
+
+.connection-status--connected .connection-status__dot {
+  background: var(--success);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+.connection-status--disconnected .connection-status__dot {
+  background: var(--error);
+}
+
+/* ── File Drop Zone ───────────────────────────────────────────── */
+.file-drop-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  border: 2px dashed var(--glass-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: center;
+  min-height: 200px;
+}
+
+.file-drop-zone:hover {
+  border-color: var(--accent-1);
+  background: rgba(108, 92, 231, 0.04);
+}
+
+.file-drop-zone--active {
+  border-color: var(--accent-2);
+  background: rgba(168, 85, 247, 0.08);
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.1);
+}
+
+.file-drop-zone--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.file-drop-zone__icon {
+  font-size: 3rem;
+  opacity: 0.6;
+}
+
+.file-drop-zone__text {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.file-drop-zone__text strong {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+.file-drop-zone__hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.file-drop-zone input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ── File Info ─────────────────────────────────────────────────── */
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.3s ease;
+}
+
+.file-info__icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-sm);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.file-info__details {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-info__name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-info__size {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.file-info__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ── Transfer Progress ────────────────────────────────────────── */
+.transfer-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.transfer-progress__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.transfer-progress__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.transfer-progress__percentage {
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.transfer-progress__bar-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 100px;
+  overflow: hidden;
+  position: relative;
+}
+
+.transfer-progress__bar-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: 100px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.transfer-progress__bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+.transfer-progress__stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.transfer-progress__stat {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Transfer complete */
+.transfer-complete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.transfer-complete__icon {
+  font-size: 3rem;
+}
+
+.transfer-complete__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.transfer-complete__subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* ── Footer ───────────────────────────────────────────────────── */
+.footer {
+  margin-top: auto;
+  padding-top: 3rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  animation: fadeIn 1s ease;
+}
+
+.footer a {
+  color: var(--accent-2);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.footer a:hover {
+  color: var(--accent-1);
+}
+
+/* ── Animations ───────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Spinner ──────────────────────────────────────────────────── */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--accent-2);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .app {
+    padding: 1.25rem 1rem;
+  }
+
+  .header__logo {
+    font-size: 2rem;
+  }
+
+  .room-panel__actions {
+    flex-direction: column;
+  }
+
+  .glass-card {
+    padding: 1.25rem;
+  }
+
+  .file-drop-zone {
+    padding: 2rem 1.25rem;
+    min-height: 160px;
+  }
+}
