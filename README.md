@@ -97,7 +97,7 @@ p2p/
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/p2p-file-sharing.git
+git clone https://github.com/MoX-creater/p2p-file-sharing.git
 cd p2p-file-sharing
 
 # Install server dependencies
