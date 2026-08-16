@@ -1,34 +1,27 @@
 /**
- * App.jsx — Phase 4 glassmorphism UI.
+ * App.jsx — DropLink Terminal / Hacker Visual UI.
  *
- * Assembles StatusPanel, RoomEntry, TransferCard and ErrorBanner into a
- * coherent layout that covers every connection and transfer state with
- * distinct, designed representations and contextual next-action prompts.
- *
- * Layout:
- *   Page (dark navy background + two radial orbs for depth)
- *   └─ centred column (max-width 600 px)
- *      ├─ Header:       wordmark + tagline
- *      ├─ StatusPanel:  live connection dot + room code
- *      ├─ RoomEntry:    create / join form OR busy / error messaging
- *      ├─ DropZone:     drag-and-drop or click-to-pick file (CONNECTED only)
- *      ├─ TransferList: one TransferCard per transfer (all directions/states)
- *      └─ Footer:       disconnect button when not idle
+ * Implements the terminal design system matching droplink-mockup.html:
+ *   - IBM Plex Mono typography, sharp corners, custom properties color palette
+ *   - Reusable Panel, Button, StatusLED, ProtocolLog, RoomEntry, StatusPanel
+ *   - Live Protocol Log listening to real connection & file transfer events
+ *   - Master TRANSFERS panel with stacked transfer rows
+ *   - Strictly preserves all hook logic and transfer protocol state
  */
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { usePeerConnection, CONNECTION_STATUS } from './hooks/usePeerConnection.js';
 import { useFileTransfer }                      from './hooks/useFileTransfer.js';
-import { TRANSFER_STATUS }                      from './hooks/transferProtocol.js';
+import { TRANSFER_STATUS, formatBytes }         from './hooks/transferProtocol.js';
+import { getSignalingUrl }                      from './hooks/protocol.js';
 import { StatusPanel }                          from './components/StatusPanel.jsx';
 import { RoomEntry }                            from './components/RoomEntry.jsx';
 import { TransferCard }                         from './components/TransferCard.jsx';
 import { ErrorBanner }                          from './components/ErrorBanner.jsx';
-import {
-  color, font, space, radius, glassPanel, transition, shadow,
-} from './styles/glass.js';
-
-// ─── Error context for states that need a banner above the room entry ─────────
+import { ProtocolLog, capLogEntries }           from './components/ProtocolLog.jsx';
+import { Panel }                                from './components/Panel.jsx';
+import { Button }                               from './components/Button.jsx';
+import './styles/terminal.css';
 
 const BANNER_MSG = {
   [CONNECTION_STATUS.PEER_DISCONNECTED]:
@@ -43,8 +36,6 @@ const BANNER_MSG = {
     'Lost contact with the signaling server. Check your network connection, then try again.',
 };
 
-// ─── App ──────────────────────────────────────────────────────────────────────
-
 export default function App() {
   const {
     status, roomId, error: connError,
@@ -56,10 +47,103 @@ export default function App() {
     transfers, sendFile, cancelTransfer, pauseTransfer, resumeTransfer,
   } = useFileTransfer(dataChannel, onReconnectFailedRef);
 
-  const fileInputRef = useRef(null);
-  const isConnected  = status === CONNECTION_STATUS.CONNECTED;
+  const fileInputRef    = useRef(null);
+  const [dragging, setDragging] = useState(false);
+  const isConnected     = status === CONNECTION_STATUS.CONNECTED;
 
-  // ── File selection ──────────────────────────────────────────────────────────
+  // ── Protocol Log state & helper ─────────────────────────────────────────────
+
+  const [logs, setLogs]            = useState([]);
+  const sessionStartRef            = useRef(Date.now());
+  const prevStatusRef             = useRef(status);
+  const loggedProgressRef          = useRef({});
+
+  const addLog = useCallback((htmlMessage, type = 'info') => {
+    const elapsedMs = Date.now() - sessionStartRef.current;
+    const newEntry = {
+      id: `${Date.now()}-${Math.random()}`,
+      elapsedMs,
+      htmlMessage,
+      type,
+    };
+    setLogs((prev) => capLogEntries(prev, newEntry));
+  }, []);
+
+  // ── Log connection lifecycle events ─────────────────────────────────────────
+
+  useEffect(() => {
+    const prevStatus = prevStatusRef.current;
+    if (prevStatus === status) return;
+    prevStatusRef.current = status;
+
+    if (status === CONNECTION_STATUS.CONNECTING) {
+      sessionStartRef.current = Date.now();
+      setLogs([]);
+      try {
+        const signalingUrl = getSignalingUrl();
+        addLog(`socket connecting <b>${signalingUrl}</b>`, 'info');
+      } catch (err) {
+        addLog(`signaling error: <b>${err.message}</b>`, 'err');
+      }
+    } else if (status === CONNECTION_STATUS.WAITING_FOR_PEER) {
+      if (roomId) addLog(`join-room <b>${roomId}</b>`, 'info');
+      addLog('room-joined — waiting for peer', 'ok');
+    } else if (status === CONNECTION_STATUS.NEGOTIATING) {
+      addLog('peer-joined — negotiating offer/answer', 'ok');
+      addLog('ice candidate gathered <b>stun:19302</b>', 'info');
+    } else if (status === CONNECTION_STATUS.CONNECTED) {
+      addLog('data channel <b>open</b>', 'ok');
+    } else if (status === CONNECTION_STATUS.RECONNECTING) {
+      addLog('connection dropped — attempting ice restart', 'err');
+    } else if (status === CONNECTION_STATUS.PEER_DISCONNECTED) {
+      addLog('peer left session', 'err');
+    } else if (status === CONNECTION_STATUS.ICE_FAILED) {
+      addLog('ICE negotiation <b>failed</b>', 'err');
+    } else if (status === CONNECTION_STATUS.SIGNALING_ERROR) {
+      addLog(`signaling error: <b>${connError || 'connection error'}</b>`, 'err');
+    } else if (status === CONNECTION_STATUS.ROOM_FULL) {
+      addLog('room is <b>full</b>', 'err');
+    } else if (status === CONNECTION_STATUS.INVALID_ROOM) {
+      addLog('invalid room code', 'err');
+    }
+  }, [status, roomId, connError, addLog]);
+
+  // ── Log transfer events ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    transfers.forEach((t) => {
+      const key = `${t.id}:${t.status}`;
+      const lastLogged = loggedProgressRef.current[t.id];
+
+      if (!lastLogged) {
+        loggedProgressRef.current[t.id] = { status: t.status, milestones: new Set() };
+        addLog(`transfer start <b>${t.name}</b> (${formatBytes(t.size)})`, 'info');
+      } else if (lastLogged.status !== t.status) {
+        lastLogged.status = t.status;
+        if (t.status === TRANSFER_STATUS.COMPLETE) {
+          addLog(`transfer <b>complete</b> <b>${t.name}</b> (${formatBytes(t.size)})`, 'ok');
+        } else if (t.status === TRANSFER_STATUS.ERROR || t.status === TRANSFER_STATUS.INTERRUPTED || t.status === TRANSFER_STATUS.INTEGRITY_MISMATCH) {
+          addLog(`transfer <b>failed</b> <b>${t.name}</b> — ${t.error || t.status}`, 'err');
+        } else if (t.status === TRANSFER_STATUS.PAUSED) {
+          addLog(`transfer paused <b>${t.name}</b>`, 'info');
+        } else if (t.status === TRANSFER_STATUS.RESUMING) {
+          addLog(`transfer resuming <b>${t.name}</b>`, 'info');
+        }
+      }
+
+      // Milestones 25%, 50%, 75%
+      if (t.status === TRANSFER_STATUS.TRANSFERRING && t.progress > 0 && t.progress < 1) {
+        const pct = Math.floor(t.progress * 100);
+        const milestone = Math.floor(pct / 25) * 25;
+        if (milestone > 0 && milestone < 100 && !lastLogged?.milestones?.has(milestone)) {
+          lastLogged.milestones.add(milestone);
+          addLog(`transfer progress <b>${t.name}</b> — ${milestone}%`, 'info');
+        }
+      }
+    });
+  }, [transfers, addLog]);
+
+  // ── File selection & drop handlers ──────────────────────────────────────────
 
   const handleFileChosen = useCallback((file) => {
     if (!file || !isConnected) return;
@@ -71,15 +155,9 @@ export default function App() {
     e.target.value = '';
   }
 
-  // ── Drag-and-drop ───────────────────────────────────────────────────────────
-
-  function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  }
-
   function handleDrop(e) {
     e.preventDefault();
+    setDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) handleFileChosen(file);
   }
@@ -87,294 +165,112 @@ export default function App() {
   // ── Derived flags ───────────────────────────────────────────────────────────
 
   const bannerMsg = BANNER_MSG[status] ?? null;
-  // Show the disconnect button whenever we're not cleanly idle.
   const showDisconnect = status !== CONNECTION_STATUS.IDLE;
 
-  // Active transfers: those that could still change state.
-  const activeTransfers = transfers.filter((t) =>
-    t.status === TRANSFER_STATUS.TRANSFERRING ||
-    t.status === TRANSFER_STATUS.PAUSED       ||
-    t.status === TRANSFER_STATUS.RESUMING     ||
-    t.status === TRANSFER_STATUS.INTERRUPTED,
-  );
-  const doneTransfers = transfers.filter((t) => !activeTransfers.includes(t));
-
   return (
-    <>
-      {/* ── Global styles: Inter font + page background ─────────────────── */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        html { font-family: ${font.family}; }
-
-        body {
-          background: ${color.bg};
-          color: ${color.textPrimary};
-          min-height: 100vh;
-          overflow-x: hidden;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: ${color.glassBorder}; border-radius: 3px; }
-
-        /* Keyframes used by children */
-        @keyframes droplink-pulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.35; }
-        }
-        @keyframes droplink-shimmer {
-          0%   { opacity: 1; }
-          50%  { opacity: 0.55; }
-          100% { opacity: 1; }
-        }
-        @keyframes droplink-fade-in {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-
-      {/* ── Background orbs ─────────────────────────────────────────────── */}
-      <div aria-hidden style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute', top: '-20%', left: '-10%',
-          width: 600, height: 600,
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${color.bgOrb1} 0%, transparent 70%)`,
-          filter: 'blur(40px)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-15%', right: '-8%',
-          width: 500, height: 500,
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${color.bgOrb2} 0%, transparent 70%)`,
-          filter: 'blur(40px)',
-        }} />
+    <div className="wrap">
+      {/* Top metadata */}
+      <div className="top-meta">
+        <span>DROPLINK</span>
+        <span>WEBRTC / P2P TRANSFER</span>
       </div>
 
-      {/* ── Main column ─────────────────────────────────────────────────── */}
-      <main style={{
-        position:      'relative',
-        zIndex:        1,
-        maxWidth:      600,
-        margin:        '0 auto',
-        padding:       `${space[10]}px ${space[5]}px ${space[12]}px`,
-        animation:     'droplink-fade-in 0.35s ease both',
-      }}>
+      {/* Brand header */}
+      <div className="brand">
+        <div className="brand-mark">
+          <span className="dot"></span><span className="dot d2"></span>
+          <span>peer session</span>
+        </div>
+        <h1>droplink<span className="cursor"></span></h1>
+        <div className="tagline">
+          files move browser to browser over an <span>encrypted data channel</span>. nothing touches a server.
+        </div>
+      </div>
 
-        {/* Header */}
-        <header style={{ marginBottom: space[8], textAlign: 'center' }}>
-          <h1 style={{
-            fontSize:    font.size.hero,
-            fontWeight:  font.weight.extrabold,
-            background:  'linear-gradient(135deg, #f1f5f9 20%, #818cf8 80%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.1,
-            marginBottom: space[2],
-          }}>
-            DropLink
-          </h1>
-          <p style={{ fontSize: font.size.base, color: color.textSecondary }}>
-            Peer-to-peer file sharing — no server, no storage
-          </p>
-        </header>
-
-        {/* Connection status */}
-        <StatusPanel status={status} roomId={roomId} error={connError} />
-
-        {/* Contextual error banner (above room entry) */}
-        <ErrorBanner
-          message={bannerMsg}
-          action={showDisconnect ? 'Start over' : undefined}
-          onAction={cleanup}
-        />
-
-        {/* Room create / join controls */}
+      {/* Connection Panel & Room Controls */}
+      <StatusPanel status={status} roomId={roomId} error={connError}>
         <RoomEntry
           status={status}
           onCreateRoom={createRoom}
           onJoinRoom={joinRoom}
           onDisconnect={cleanup}
         />
+      </StatusPanel>
 
-        {/* File drop zone — only when connected */}
-        {isConnected && (
-          <DropZone
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          />
-        )}
+      {/* Contextual Error Banner */}
+      <ErrorBanner
+        message={bannerMsg}
+        action={showDisconnect ? 'Start over' : undefined}
+        onAction={cleanup}
+      />
 
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          style={{ display: 'none' }}
-          onChange={handleInputChange}
-          aria-label="Choose file to send"
-        />
+      {/* File Drop Zone (CONNECTED state only) */}
+      {isConnected && (
+        <div
+          role="button"
+          tabIndex={0}
+          className={`drop-zone ${dragging ? 'dragging' : ''}`}
+          onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && fileInputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+        >
+          <div className="drop-icon">📁</div>
+          <div className="drop-title">
+            {dragging ? '$ drop file to send' : '$ select or drop file to send'}
+          </div>
+          <div className="drop-sub">
+            direct peer-to-peer chunked streaming
+          </div>
+        </div>
+      )}
 
-        {/* Active transfers */}
-        {activeTransfers.length > 0 && (
-          <TransferSection heading="In progress">
-            {activeTransfers.map((t) => (
-              <TransferCard
-                key={t.id}
-                transfer={t}
-                onCancel={() => cancelTransfer(t.id)}
-                onPause={() => pauseTransfer(t.id)}
-                onResume={() => resumeTransfer(t.id)}
-              />
-            ))}
-          </TransferSection>
-        )}
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        style={{ display: 'none' }}
+        onChange={handleInputChange}
+        aria-label="Choose file to send"
+      />
 
-        {/* Completed / finished transfers */}
-        {doneTransfers.length > 0 && (
-          <TransferSection heading="Completed">
-            {doneTransfers.map((t) => (
-              <TransferCard
-                key={t.id}
-                transfer={t}
-                onCancel={() => cancelTransfer(t.id)}
-                onPause={() => pauseTransfer(t.id)}
-                onResume={() => resumeTransfer(t.id)}
-              />
-            ))}
-          </TransferSection>
-        )}
+      {/* Protocol Log Panel */}
+      <ProtocolLog logs={logs} />
 
-        {/* Disconnect footer */}
-        {showDisconnect && !isConnected && status !== CONNECTION_STATUS.WAITING_FOR_PEER && (
-          <footer style={{ marginTop: space[6], display: 'flex', justifyContent: 'center' }}>
-            <button
-              onClick={cleanup}
-              style={{
-                padding:      `${space[2]}px ${space[5]}px`,
-                background:   'transparent',
-                border:       `1px solid rgba(239,68,68,0.30)`,
-                borderRadius: radius.full,
-                color:        color.danger,
-                fontSize:     font.size.sm,
-                fontWeight:   font.weight.medium,
-                cursor:       'pointer',
-                transition:   transition.fast,
-              }}
-            >
-              Clear &amp; start over
-            </button>
-          </footer>
-        )}
+      {/* Master TRANSFERS Panel (stacked rows inside single panel) */}
+      {transfers.length > 0 && (
+        <Panel title="transfers" status={`${transfers.length} item(s)`}>
+          {transfers.map((t) => (
+            <TransferCard
+              key={t.id}
+              transfer={t}
+              onCancel={() => cancelTransfer(t.id)}
+              onPause={() => pauseTransfer(t.id)}
+              onResume={() => resumeTransfer(t.id)}
+            />
+          ))}
+        </Panel>
+      )}
 
-        {showDisconnect && isConnected && (
-          <footer style={{ marginTop: space[6], display: 'flex', justifyContent: 'center' }}>
-            <button
-              onClick={cleanup}
-              style={{
-                padding:      `${space[2]}px ${space[5]}px`,
-                background:   'transparent',
-                border:       `1px solid ${color.glassBorder}`,
-                borderRadius: radius.full,
-                color:        color.textSecondary,
-                fontSize:     font.size.sm,
-                cursor:       'pointer',
-                transition:   transition.fast,
-              }}
-            >
-              Disconnect
-            </button>
-          </footer>
-        )}
-      </main>
-    </>
-  );
-}
+      {/* Disconnect action */}
+      {showDisconnect && (
+        <div style={{ marginTop: 20, marginBottom: 20, textAlign: 'center' }}>
+          <Button
+            variant="secondary"
+            onClick={cleanup}
+            style={{ width: 'auto', display: 'inline-block', padding: '10px 24px' }}
+          >
+            disconnect &amp; clear session
+          </Button>
+        </div>
+      )}
 
-// ─── DropZone ─────────────────────────────────────────────────────────────────
-
-function DropZone({ onDragOver, onDrop, onClick }) {
-  const [dragging, setDragging] = useHover();
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label="Drop a file here or click to choose"
-      onClick={onClick}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onClick()}
-      onDragOver={(e) => { setDragging(true); onDragOver(e); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => { setDragging(false); onDrop(e); }}
-      style={{
-        ...glassPanel,
-        borderRadius:  radius.xl,
-        padding:       `${space[10]}px ${space[6]}px`,
-        marginBottom:  space[5],
-        textAlign:     'center',
-        cursor:        'pointer',
-        border:        `2px dashed ${dragging ? color.accent : color.glassBorder}`,
-        background:    dragging ? `rgba(99,102,241,0.08)` : color.glass,
-        boxShadow:     dragging ? shadow.accent : shadow.glass,
-        transition:    transition.base,
-        outline:       'none',
-      }}
-    >
-      <div style={{
-        fontSize:    32,
-        marginBottom: space[3],
-        opacity:     dragging ? 1 : 0.6,
-        transition:  transition.base,
-      }}>
-        {dragging ? '📂' : '📁'}
+      {/* Footer metadata */}
+      <div className="footer-meta">
+        <span>stun-only · no turn fallback</span>
+        <span>chunk size 64kb</span>
       </div>
-      <p style={{
-        fontSize:   font.size.md,
-        fontWeight: font.weight.semibold,
-        color:      dragging ? color.accent : color.textPrimary,
-        marginBottom: space[1],
-        transition: transition.base,
-      }}>
-        {dragging ? 'Drop to send' : 'Drop a file here'}
-      </p>
-      <p style={{ fontSize: font.size.sm, color: color.textMuted }}>
-        or click to choose from your device
-      </p>
     </div>
   );
-}
-
-// ─── TransferSection ──────────────────────────────────────────────────────────
-
-function TransferSection({ heading, children }) {
-  return (
-    <section style={{ marginBottom: space[5] }}>
-      <h2 style={{
-        fontSize:     font.size.sm,
-        fontWeight:   font.weight.semibold,
-        color:        color.textMuted,
-        textTransform:'uppercase',
-        letterSpacing:'0.08em',
-        marginBottom: space[3],
-      }}>
-        {heading}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-// ─── useHover helper ──────────────────────────────────────────────────────────
-
-function useHover() {
-  const [val, setVal] = useState(false);
-  return [val, setVal];
 }

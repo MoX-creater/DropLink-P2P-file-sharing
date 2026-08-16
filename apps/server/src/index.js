@@ -26,15 +26,35 @@ import {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const PORT = parseInt(process.env.PORT, 10) || 3001;
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-/**
- * Comma-separated list of origins allowed to open WebSocket connections.
- * Distinct from CLIENT_ORIGIN which gates Express HTTP CORS only.
- * Example: ALLOWED_ORIGINS=http://localhost:5173,https://droplink.app
- */
+// 1. PORT: read process.env.PORT || 3001
+const rawPort = process.env.PORT;
+const isPortFromEnv = Boolean(rawPort);
+const PORT = parseInt(rawPort, 10) || 3001;
+
+// 2. CLIENT_ORIGIN: read process.env.CLIENT_ORIGIN with dev fallback only
+let clientOrigin = process.env.CLIENT_ORIGIN;
+if (!clientOrigin) {
+  if (IS_PROD) {
+    logger.error('startup-config-error', { error: 'CLIENT_ORIGIN environment variable is required in production' });
+    throw new Error('FATAL: CLIENT_ORIGIN environment variable is required in production');
+  }
+  clientOrigin = 'http://localhost:5173';
+}
+
+// 3. ALLOWED_ORIGINS: read process.env.ALLOWED_ORIGINS with dev fallback only
+let allowedOriginsRaw = process.env.ALLOWED_ORIGINS;
+if (!allowedOriginsRaw) {
+  if (IS_PROD) {
+    logger.error('startup-config-error', { error: 'ALLOWED_ORIGINS environment variable is required in production' });
+    throw new Error('FATAL: ALLOWED_ORIGINS environment variable is required in production');
+  }
+  allowedOriginsRaw = 'http://localhost:5173';
+}
+
 const ALLOWED_ORIGINS = new Set(
-  (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+  allowedOriginsRaw
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean),
@@ -48,7 +68,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: clientOrigin,
   }),
 );
 
@@ -57,7 +77,7 @@ app.get('/', (_req, res) => {
     service: 'DropLink Signaling Server',
     status: 'running',
     health: '/health',
-    clientUrl: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    clientUrl: clientOrigin,
   });
 });
 
@@ -265,7 +285,13 @@ function handleRoutedMessage(ws, envelope) {
 startRateLimitSweep();
 
 server.listen(PORT, () => {
-  logger.info('server-started', { port: PORT });
+  logger.info('server-started', {
+    port: PORT,
+    portSource: isPortFromEnv ? 'env' : 'local-default',
+    nodeEnv: process.env.NODE_ENV || 'development',
+    clientOrigin,
+    allowedOrigins: Array.from(ALLOWED_ORIGINS),
+  });
 });
 
 // Graceful shutdown — give in-flight messages a moment to drain.

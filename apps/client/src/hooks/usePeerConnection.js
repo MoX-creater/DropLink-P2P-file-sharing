@@ -35,7 +35,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { MSG_TYPES, makeEnvelope, parseEnvelope, generateRoomId } from './protocol.js';
+import { MSG_TYPES, makeEnvelope, parseEnvelope, generateRoomId, getSignalingUrl } from './protocol.js';
 
 // ─── Connection states ────────────────────────────────────────────────────────
 
@@ -381,9 +381,16 @@ export function usePeerConnection() {
     cleanedUpRef.current = false;
     wasConnectedRef.current = false;
 
+    let signalingUrl;
+    try {
+      signalingUrl = getSignalingUrl();
+    } catch (err) {
+      transition(CONNECTION_STATUS.SIGNALING_ERROR, err.message);
+      return;
+    }
+
     transition(CONNECTION_STATUS.CONNECTING);
 
-    const signalingUrl = import.meta.env?.VITE_SIGNALING_URL ?? 'ws://localhost:3001';
     const ws = new WebSocket(signalingUrl);
     wsRef.current = ws;
 

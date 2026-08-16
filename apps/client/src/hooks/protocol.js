@@ -87,3 +87,26 @@ export function generateRoomId() {
   }
   return id;
 }
+
+/**
+ * Resolve the signaling server WebSocket URL from environment variables.
+ *
+ * In local development (import.meta.env.DEV), falls back to ws://localhost:3001
+ * when VITE_SIGNALING_URL is not set.
+ * In a production build, a missing VITE_SIGNALING_URL fails loudly.
+ *
+ * @returns {string}
+ */
+export function getSignalingUrl() {
+  const url = import.meta.env?.VITE_SIGNALING_URL;
+  if (url) return url;
+
+  if (import.meta.env?.DEV) {
+    return 'ws://localhost:3001';
+  }
+
+  const msg = 'VITE_SIGNALING_URL environment variable is not defined for production build';
+  console.error(`[DropLink] ${msg}`);
+  throw new Error(msg);
+}
+
