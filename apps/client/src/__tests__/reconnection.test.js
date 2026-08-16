@@ -97,7 +97,7 @@ vi.mock('../hooks/receiverSink.js', () => ({
   })),
 }));
 
-const FIXED_HASH_HEX = 'ab'.repeat(32);
+const _FIXED_HASH_HEX = 'ab'.repeat(32);
 let digestSpy;
 
 beforeEach(() => {
@@ -369,7 +369,7 @@ describe('useFileTransfer reconnect / resume', () => {
     });
 
     // Re-render the hook with the new channel.
-    const { result: result2 } = renderHook(() => useFileTransfer(newDc));
+    const { result: _result2 } = renderHook(() => useFileTransfer(newDc));
 
     // The new hook instance won't have the old receiveStateRef — that's expected.
     // For a real integration, both channels are passed to the same hook instance.

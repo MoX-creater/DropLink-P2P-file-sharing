@@ -63,14 +63,14 @@ export async function openSink(meta) {
   if (willUseFallback && meta.size > FALLBACK_MAX_BYTES) {
     throw new Error(
       `File is too large for in-memory receive (${(meta.size / (1024 ** 3)).toFixed(1)} GB). ` +
-      `Use Chrome or Edge for files over 2 GB.`,
+      'Use Chrome or Edge for files over 2 GB.',
     );
   }
 
   const warning =
     willUseFallback && meta.size > FALLBACK_WARN_BYTES
       ? `Large file (${(meta.size / (1024 ** 2)).toFixed(0)} MB) will be held in memory ` +
-        `until download completes. Use Chrome or Edge to avoid memory pressure.`
+        'until download completes. Use Chrome or Edge to avoid memory pressure.'
       : null;
 
   // ── PRIMARY: File System Access API ──────────────────────────────────────────

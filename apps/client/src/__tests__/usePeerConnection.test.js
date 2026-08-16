@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePeerConnection, CONNECTION_STATUS } from '../hooks/usePeerConnection.js';
-import { MSG_TYPES, makeEnvelope } from '../hooks/protocol.js';
+import { MSG_TYPES } from '../hooks/protocol.js';
 
 // ─── WebSocket mock factory ───────────────────────────────────────────────────
 

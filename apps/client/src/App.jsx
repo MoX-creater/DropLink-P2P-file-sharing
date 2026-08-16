@@ -112,7 +112,6 @@ export default function App() {
 
   useEffect(() => {
     transfers.forEach((t) => {
-      const key = `${t.id}:${t.status}`;
       const lastLogged = loggedProgressRef.current[t.id];
 
       if (!lastLogged) {
