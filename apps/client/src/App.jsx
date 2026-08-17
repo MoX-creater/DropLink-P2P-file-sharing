@@ -267,8 +267,8 @@ export default function App() {
 
       {/* Footer metadata */}
       <div className="footer-meta">
-        <span>stun-only · no turn fallback</span>
-        <span>chunk size 64kb</span>
+        <span>#stun-only · no turn fallback</span>
+        <span>#chunk size 64kb</span>
       </div>
     </div>
   );
