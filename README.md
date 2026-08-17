@@ -15,20 +15,15 @@
 
 ## Overview
 
-<<<<<<< HEAD
-> [!NOTE]
-> **Recommended Browsers:** Chromium-based browsers (**Chrome**, **Edge**, **Opera**, **Brave**) provide the best experience with full streaming writes to disk via the File System Access API and no file size limits. **Firefox** and **Safari** work seamlessly but fall back to in-memory buffering with a 2 GB file size limit.
-
-<!-- TODO: Write a 2-3 sentence product description -->
-=======
 DropLink sends files directly between two browsers over a WebRTC data channel. A lightweight signaling server only helps two peers find each other and exchange connection metadata (SDP offers/answers, ICE candidates) — it never sees file contents, never stores anything, and the file data flows peer-to-peer once the connection is established.
 
 Large files are streamed to disk via the File System Access API rather than buffered in memory, and every transfer is verified end-to-end with a SHA-256 hash comparison.
 
 > [!NOTE]
 > The signaling server runs on Render's free tier, which spins down after periods of inactivity. The first connection after idle time may take 30–60 seconds to wake it up.
->>>>>>> abf19e20b4d542d15666037a1bcfd69ec232c75f
 
+> [!TIP]
+> **Recommended browsers:** Chromium-based browsers (Chrome, Edge, Opera, Brave) give the best experience — full streaming writes to disk via the File System Access API, no file size limit. Firefox and Safari work too, but fall back to in-memory buffering with a 2 GB cap.
 ---
 
 ## Architecture
