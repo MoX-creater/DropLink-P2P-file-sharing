@@ -21,6 +21,7 @@ import { ErrorBanner }                          from './components/ErrorBanner.j
 import { ProtocolLog, capLogEntries }           from './components/ProtocolLog.jsx';
 import { Panel }                                from './components/Panel.jsx';
 import { Button }                               from './components/Button.jsx';
+import { isFsapiSupported }                     from './hooks/receiverSink.js';
 import './styles/terminal.css';
 
 const BANNER_MSG = {
@@ -267,9 +268,14 @@ export default function App() {
 
       {/* Footer metadata */}
       <div className="footer-meta">
-        <span>#stun-only · no turn fallback</span>
-        <span>#chunk size 64kb</span>
+        <span># stun-only · no turn fallback</span>
+        <span># chunk size 64kb</span>
       </div>
+      {!isFsapiSupported() && (
+        <div className="footer-hint">
+          # best experience on chrome/edge — streaming writes, no size cap
+        </div>
+      )}
     </div>
   );
 }

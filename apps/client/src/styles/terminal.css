@@ -352,6 +352,13 @@ h1 .cursor {
   letter-spacing: 0.04em;
 }
 
+.footer-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 8px;
+  letter-spacing: 0.04em;
+}
+
 /* Drop zone */
 .drop-zone {
   border: 1px dashed var(--border-strong);

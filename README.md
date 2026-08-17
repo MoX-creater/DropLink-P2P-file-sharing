@@ -16,6 +16,9 @@
 
 ## Overview
 
+> [!NOTE]
+> **Recommended Browsers:** Chromium-based browsers (**Chrome**, **Edge**, **Opera**, **Brave**) provide the best experience with full streaming writes to disk via the File System Access API and no file size limits. **Firefox** and **Safari** work seamlessly but fall back to in-memory buffering with a 2 GB file size limit.
+
 <!-- TODO: Write a 2-3 sentence product description -->
 
 ---
