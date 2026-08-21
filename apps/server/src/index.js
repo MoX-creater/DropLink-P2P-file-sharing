@@ -23,6 +23,7 @@ import {
   checkRateLimit,
   startRateLimitSweep,
 } from './rateLimiter.js';
+import rateLimit from "express-rate-limit";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,16 @@ app.use(
     origin: clientOrigin,
   }),
 );
+
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again shortly." },
+});
+
+app.use(globalLimiter);
 
 app.get('/', (_req, res) => {
   res.json({
